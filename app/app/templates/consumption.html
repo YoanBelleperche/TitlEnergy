@@ -1,0 +1,71 @@
+<h1>Energy consumption</h1>
+
+<h2>Enter your data</h2>
+
+<form method="POST" action="{% url 'consumption' %}">
+
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button type="sumbit">Send</button>
+
+</form>
+
+{% if results %}
+    <div>
+        {% for name, consumption in results.items %}
+            {% if name == "Total" %}
+                <p>{{ name }} : {{ consumption }} Wh</p>
+            {% else %}
+                <p>{{ name }} : {{ consumption }} Wh ({%  widthratio consumption results.Total 100 %}%)</p>
+            {% endif %}            
+        {% endfor%}
+    </div>
+{% endif %}
+
+
+<script>
+const minimumConsumption = {{ minimum_consumption|safe }};
+const appliances = {{ appliances|safe }};
+
+function groupByCategory() {
+    categories = { 'F': [], 'A': [], 'L': [] };
+    for (const [k, v] of Object.entries(minimumConsumption)) {
+        const input = document.querySelector(`input[name="${k}"]`)
+        const nbr = parseInt(input.value);
+        const category = v['category'];
+        const power = v['power']
+
+        if (nbr == 0) { continue; }
+        categories[category].push(v['power'])
+        
+    }
+    return categories;
+}
+
+function meansCategories() {
+    categories = groupByCategory();
+    for (const [k, v] of Object.entries(categories)) {
+        categories[k] = v.length === 0 ? 0 : v.reduce((acc, num) => acc + num, 0) / v.length;
+    }
+    return categories;
+}
+
+function computeMinimumConsumption() {
+    return Object.entries(meansCategories()).reduce((acc, [k, v]) => acc + v, 0) / 1000;;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    for (const [k, v] of Object.entries(minimumConsumption)) {
+        console.log(k, v)
+
+        let consumption = document.querySelector('input[name=consumption]');
+        document.querySelector(`input[name="${k}"]`).addEventListener('input', () => {
+            let minimumConsumption = computeMinimumConsumption()
+            consumption.setAttribute('min', minimumConsumption);
+            consumption.value = minimumConsumption;
+        });
+    }
+});
+
+</script>
